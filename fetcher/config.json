@@ -1,0 +1,23 @@
+{
+  "nasa_api_key": "DEMO_KEY",
+  "images_dir": "../wallpaper/images",
+  "manifest_path": "../wallpaper/manifest.json",
+  "downloads_per_run": 3,
+  "lookback_days": 45,
+  "min_width": 3840,
+  "min_width_best_effort": 2560,
+  "max_encode_width": 5120,
+  "jpeg_quality": 90,
+  "cleanup": {
+    "max_folder_bytes": 2147483648,
+    "max_age_days": 30
+  },
+  "sources": {
+    "esa_hubble": true,
+    "esa_webb": true,
+    "nasa_apod": true,
+    "nasa_library": true,
+    "isro": true,
+    "jaxa": true
+  }
+}

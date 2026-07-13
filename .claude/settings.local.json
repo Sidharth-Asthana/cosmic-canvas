@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(New-Item -ItemType File -Path \"wallpaper\\\\images\\\\favorites\\\\.gitkeep\")",
+      "PowerShell(C:\\\\Python314\\\\python.exe -m pip install -q requests Pillow beautifulsoup4)",
+      "PowerShell(C:\\\\Python314\\\\python.exe -c \"import requests, PIL, bs4; print\\('deps ok:', requests.__version__, PIL.__version__, bs4.__version__\\)\")"
+    ]
+  }
+}
