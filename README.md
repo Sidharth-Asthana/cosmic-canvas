@@ -13,7 +13,11 @@ cursor effects.
   scored (source curation, resolution, colorfulness, sharpness) and the top 3
   per run are downloaded and re-encoded as wallpaper-friendly JPEGs.
 - **Interactive live wallpaper** — a WebGL slideshow with slow Ken Burns
-  drift and four cursor effects, each toggleable in Lively's customize panel:
+  drift and a rotating cursor effect: exactly one effect is live per
+  wallpaper, cycling through the rotation as images change (or on its own
+  timer — set *Effect cycle interval* in Lively's customize panel; a small
+  toast names the effect when it switches). Checkboxes control which effects
+  are in the rotation:
   - *Parallax drift* — image + twinkling starfield shift with the cursor
   - *Lens ripple* — a gravitational-lens warp radiates from each click
   - *Stardust trail* — glowing particles follow your drag

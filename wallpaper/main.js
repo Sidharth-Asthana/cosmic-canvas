@@ -11,11 +11,62 @@ const settings = {
   showCredit: true,
   shuffle: false,
   effectIntensity: 1.0,
-  parallaxEnabled: true,
+  effectCycleMinutes: 0,   // 0 = switch effect with each wallpaper change
+  showEffectName: true,
+  parallaxEnabled: true,   // *Enabled flags = include this effect in the rotation
   stardustEnabled: true,
   rippleEnabled: true,
   constellationEnabled: true,
 };
+
+/* ------------------------------------------------------ effect rotation
+ * Exactly one cursor effect is live at a time; the rotation advances with
+ * each wallpaper change, or on its own timer if effectCycleMinutes > 0. */
+
+const EFFECT_ORDER = ["parallax", "stardust", "ripple", "constellation"];
+const EFFECT_LABELS = {
+  parallax: "Parallax drift",
+  stardust: "Stardust trail",
+  ripple: "Lens ripple",
+  constellation: "Constellation lines",
+};
+let effectIndex = 0;
+let lastEffectSwitch = 0;
+let toastTimer = null;
+
+function effectRotation() {
+  return EFFECT_ORDER.filter(name => settings[name + "Enabled"]);
+}
+
+function activeEffectName() {
+  const rot = effectRotation();
+  return rot.length ? rot[effectIndex % rot.length] : null;
+}
+
+function showEffectToast(name) {
+  const el = document.getElementById("effectToast");
+  if (!settings.showEffectName || !name) { el.classList.remove("visible"); return; }
+  el.textContent = "✦ " + EFFECT_LABELS[name];
+  el.classList.add("visible");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("visible"), 5000);
+}
+
+function applyActiveEffect(withToast) {
+  const active = activeEffectName();
+  Parallax.enabled = active === "parallax";
+  Stardust.enabled = active === "stardust";
+  Ripple.enabled = active === "ripple";
+  Constellation.enabled = active === "constellation";
+  if (withToast) showEffectToast(active);
+}
+
+function advanceEffect(now) {
+  const rot = effectRotation();
+  if (rot.length > 1) effectIndex = (effectIndex + 1) % rot.length;
+  lastEffectSwitch = now;
+  applyActiveEffect(rot.length > 1);
+}
 
 /* ---------------------------------------------------------------- WebGL */
 
@@ -281,10 +332,22 @@ function livelyPropertyListener(name, val) {
       settings.effectIntensity = Number(val);
       Stardust.intensity = Number(val);
       break;
-    case "parallaxEnabled": Parallax.enabled = !!val; break;
-    case "stardustEnabled": Stardust.enabled = !!val; break;
-    case "rippleEnabled": Ripple.enabled = !!val; break;
-    case "constellationEnabled": Constellation.enabled = !!val; break;
+    case "effectCycleMinutes":
+      settings.effectCycleMinutes = Number(val);
+      lastEffectSwitch = performance.now() / 1000;
+      break;
+    case "showEffectName":
+      settings.showEffectName = !!val;
+      showEffectToast(settings.showEffectName ? activeEffectName() : null);
+      break;
+    case "parallaxEnabled":
+    case "stardustEnabled":
+    case "rippleEnabled":
+    case "constellationEnabled":
+      settings[name] = !!val;
+      effectIndex = 0; // rotation membership changed; restart from the top
+      applyActiveEffect(true);
+      break;
   }
 }
 window.livelyPropertyListener = livelyPropertyListener;
@@ -315,10 +378,16 @@ function frame() {
       mixValue = 0;
       fading = false;
       setCredit(slots[front].entry);
+      if (settings.effectCycleMinutes === 0) advanceEffect(now);
     }
   } else if (playlist.length > 1 &&
              now - lastAdvance > settings.slideshowMinutes * 60) {
     advance(false);
+  }
+
+  if (settings.effectCycleMinutes > 0 &&
+      now - lastEffectSwitch > settings.effectCycleMinutes * 60) {
+    advanceEffect(now);
   }
 
   const a = slots[front], b = slots[1 - front];
@@ -353,5 +422,6 @@ function frame() {
 }
 
 applyManifest();          // manifest.js was loaded synchronously in index.html
+applyActiveEffect(false); // arm the first effect in the rotation, no toast
 setInterval(reloadManifest, 10 * 60 * 1000);
 requestAnimationFrame(frame);

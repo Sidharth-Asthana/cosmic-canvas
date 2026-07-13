@@ -19,24 +19,34 @@
     "text": "Effect intensity",
     "value": 1.0, "min": 0.2, "max": 2.0, "step": 0.1
   },
+  "effectCycleMinutes": {
+    "type": "slider",
+    "text": "Effect cycle interval (minutes, 0 = change with wallpaper)",
+    "value": 0, "min": 0, "max": 240, "step": 1
+  },
+  "showEffectName": {
+    "type": "checkbox",
+    "text": "Show effect name when it changes",
+    "value": true
+  },
   "parallaxEnabled": {
     "type": "checkbox",
-    "text": "Parallax drift (cursor movement)",
+    "text": "Rotation: parallax drift (cursor movement)",
     "value": true
   },
   "stardustEnabled": {
     "type": "checkbox",
-    "text": "Stardust trail (drag)",
+    "text": "Rotation: stardust trail (drag)",
     "value": true
   },
   "rippleEnabled": {
     "type": "checkbox",
-    "text": "Lens ripple (click)",
+    "text": "Rotation: lens ripple (click)",
     "value": true
   },
   "constellationEnabled": {
     "type": "checkbox",
-    "text": "Constellation lines (drag)",
+    "text": "Rotation: constellation lines (drag)",
     "value": true
   }
 }

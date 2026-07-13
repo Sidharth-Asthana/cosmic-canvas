@@ -21,6 +21,14 @@
   }
   #credit.visible { opacity: 1; }
   #credit .title { font-size: 13px; font-weight: 600; color: rgba(255,255,255,.75); }
+  #effectToast {
+    position: absolute; left: 18px; bottom: 14px; z-index: 2;
+    font: 12px/1.5 "Segoe UI", system-ui, sans-serif;
+    color: rgba(255,255,255,.65); letter-spacing: .04em;
+    text-shadow: 0 1px 3px rgba(0,0,0,.8); pointer-events: none;
+    opacity: 0; transition: opacity 1s ease;
+  }
+  #effectToast.visible { opacity: 1; }
   #nowallpapers {
     position: absolute; inset: 0; z-index: 3; display: none;
     align-items: center; justify-content: center;
@@ -32,6 +40,7 @@
 <canvas id="gl"></canvas>
 <canvas id="fx"></canvas>
 <div id="credit"></div>
+<div id="effectToast"></div>
 <div id="nowallpapers">No images yet — run the space wallpaper fetcher once.</div>
 
 <script src="manifest.js"></script>
