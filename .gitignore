@@ -20,3 +20,4 @@ fetcher/config.local.json
 
 # Claude Code harness runtime files
 .claude/scheduled_tasks.lock
+.claude/settings.local.json
