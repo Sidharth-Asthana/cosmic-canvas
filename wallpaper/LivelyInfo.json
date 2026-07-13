@@ -1,0 +1,14 @@
+{
+  "AppVersion": "2.0.0.0",
+  "Title": "Cosmic Canvas — Live Space Telescope Wallpaper",
+  "Thumbnail": "preview.jpg",
+  "Preview": "preview.jpg",
+  "Desc": "Auto-updating 4K imagery from NASA, ESA, ISRO and JAXA space telescopes with interactive cursor effects: parallax drift, stardust trails, click ripples and constellation sketching. Images refresh daily via the bundled fetcher.",
+  "Author": "Sidharth Asthana",
+  "License": "Code MIT. Imagery courtesy NASA, ESA/Hubble, ESA/Webb, ISRO, JAXA — credits shown per image.",
+  "Contact": "",
+  "Type": 1,
+  "FileName": "index.html",
+  "Arguments": "",
+  "IsAbsolutePath": false
+}

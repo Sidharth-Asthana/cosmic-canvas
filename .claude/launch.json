@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "wallpaper-preview",
+      "runtimeExecutable": "C:\\Python314\\python.exe",
+      "runtimeArgs": ["-m", "http.server", "8734", "--directory", "wallpaper"],
+      "port": 8734
+    }
+  ]
+}

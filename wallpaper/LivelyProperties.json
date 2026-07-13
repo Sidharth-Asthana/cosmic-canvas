@@ -1,0 +1,42 @@
+{
+  "slideshowMinutes": {
+    "type": "slider",
+    "text": "Slideshow interval (minutes)",
+    "value": 20, "min": 1, "max": 240, "step": 1
+  },
+  "shuffle": {
+    "type": "checkbox",
+    "text": "Shuffle image order",
+    "value": false
+  },
+  "showCredit": {
+    "type": "checkbox",
+    "text": "Show image title and credit",
+    "value": true
+  },
+  "effectIntensity": {
+    "type": "slider",
+    "text": "Effect intensity",
+    "value": 1.0, "min": 0.2, "max": 2.0, "step": 0.1
+  },
+  "parallaxEnabled": {
+    "type": "checkbox",
+    "text": "Parallax drift (cursor movement)",
+    "value": true
+  },
+  "stardustEnabled": {
+    "type": "checkbox",
+    "text": "Stardust trail (drag)",
+    "value": true
+  },
+  "rippleEnabled": {
+    "type": "checkbox",
+    "text": "Lens ripple (click)",
+    "value": true
+  },
+  "constellationEnabled": {
+    "type": "checkbox",
+    "text": "Constellation lines (drag)",
+    "value": true
+  }
+}

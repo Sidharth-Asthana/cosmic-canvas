@@ -4,6 +4,7 @@ wallpaper/images/*
 wallpaper/images/favorites/*
 !wallpaper/images/favorites/.gitkeep
 wallpaper/manifest.json
+wallpaper/manifest.js
 
 # Fetcher runtime state and logs
 fetcher/state.json

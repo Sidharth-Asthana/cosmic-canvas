@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cosmic Canvas</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    overflow: hidden; background: #000; cursor: default;
+  }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #gl { z-index: 0; }
+  #fx { z-index: 1; }
+  #credit {
+    position: absolute; right: 18px; bottom: 14px; z-index: 2;
+    font: 12px/1.5 "Segoe UI", system-ui, sans-serif;
+    color: rgba(255,255,255,.55); text-align: right;
+    text-shadow: 0 1px 3px rgba(0,0,0,.8);
+    max-width: 46vw; pointer-events: none;
+    opacity: 0; transition: opacity 2s ease;
+  }
+  #credit.visible { opacity: 1; }
+  #credit .title { font-size: 13px; font-weight: 600; color: rgba(255,255,255,.75); }
+  #nowallpapers {
+    position: absolute; inset: 0; z-index: 3; display: none;
+    align-items: center; justify-content: center;
+    font: 15px "Segoe UI", system-ui, sans-serif; color: rgba(255,255,255,.6);
+  }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<canvas id="fx"></canvas>
+<div id="credit"></div>
+<div id="nowallpapers">No images yet — run the space wallpaper fetcher once.</div>
+
+<script src="manifest.js"></script>
+<script src="effects/parallax.js"></script>
+<script src="effects/stardust.js"></script>
+<script src="effects/ripple.js"></script>
+<script src="effects/constellation.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
