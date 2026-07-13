@@ -106,12 +106,12 @@ vec2 warp(vec2 uv) {
     vec2 d = uv - rp.xy;
     d.x *= uScreenAspect;            // circular in screen space
     float dist = length(d);
-    float radius = age * 0.30;
-    float band = exp(-pow((dist - radius) * 16.0, 2.0));
-    float fade = exp(-age * 1.6) * (1.0 - smoothstep(3.0, 3.5, age));
+    float radius = age * 0.45;       // fast expansion = instant feedback
+    float band = exp(-pow((dist - radius) * 15.0, 2.0));
+    float fade = exp(-age * 1.4) * (1.0 - smoothstep(3.0, 3.5, age));
     vec2 dir = dist > 1e-4 ? d / dist : vec2(0.0);
     dir.x /= uScreenAspect;
-    off -= dir * band * fade * 0.03 * uIntensity; // pull inward: lens-like
+    off -= dir * band * fade * 0.035 * uIntensity; // pull inward: lens-like
   }
   return off;
 }
@@ -274,12 +274,17 @@ const fxCanvas = document.getElementById("fx");
 const fxCtx = fxCanvas.getContext("2d");
 
 function resize() {
-  const w = window.innerWidth, h = window.innerHeight;
+  // Round consistently: with fractional display scaling (125%/150%) the
+  // canvas width assignment truncates, so an unrounded comparison mismatches
+  // every frame and regenerates the starfield 60x/s (visible flicker).
   const dpr = window.devicePixelRatio || 1;
-  glCanvas.width = w * dpr; glCanvas.height = h * dpr;
-  fxCanvas.width = w * dpr; fxCanvas.height = h * dpr;
+  const W = Math.round(window.innerWidth * dpr);
+  const H = Math.round(window.innerHeight * dpr);
+  if (glCanvas.width === W && glCanvas.height === H) return;
+  glCanvas.width = W; glCanvas.height = H;
+  fxCanvas.width = W; fxCanvas.height = H;
   fxCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  gl.viewport(0, 0, glCanvas.width, glCanvas.height);
+  gl.viewport(0, 0, W, H);
   Parallax.regenerate();
 }
 window.addEventListener("resize", resize);
@@ -362,10 +367,8 @@ function frame() {
   prevFrame = now;
 
   // Layout can settle after load (and monitors change under Lively) without a
-  // resize event reaching us — recheck each frame, it's a cheap comparison.
-  const dpr = window.devicePixelRatio || 1;
-  if (glCanvas.width !== Math.round(window.innerWidth * dpr) ||
-      glCanvas.height !== Math.round(window.innerHeight * dpr)) resize();
+  // resize event reaching us — resize() early-returns when nothing changed.
+  resize();
 
   Parallax.update(dt);
   Stardust.update(dt);
@@ -416,6 +419,7 @@ function frame() {
   fxCtx.clearRect(0, 0, w, h);
   Parallax.draw(fxCtx, w, h, now);
   Stardust.draw(fxCtx);
+  Ripple.draw(fxCtx, now);
   Constellation.draw(fxCtx, now);
 
   requestAnimationFrame(frame);
