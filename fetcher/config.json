@@ -2,7 +2,12 @@
   "nasa_api_key": "DEMO_KEY",
   "images_dir": "../wallpaper/images",
   "manifest_path": "../wallpaper/manifest.json",
-  "downloads_per_run": 3,
+  "themes": {
+    "space": 1,
+    "abstract": 1,
+    "nature": 1,
+    "water": 1
+  },
   "lookback_days": 45,
   "min_width": 3840,
   "min_width_best_effort": 2560,
@@ -18,6 +23,7 @@
     "nasa_apod": true,
     "nasa_library": true,
     "isro": true,
-    "jaxa": true
+    "jaxa": true,
+    "wallhaven": true
   }
 }

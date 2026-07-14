@@ -1,17 +1,25 @@
 # Cosmic Canvas — self-updating space telescope wallpaper
 
 A live Windows wallpaper that stays fresh with the newest publicly released
-imagery from **NASA, ESA, ISRO and JAXA** space telescopes, rendered through
+imagery from **NASA, ESA, ISRO and JAXA** space telescopes — plus optional
+**abstract, nature and water** themes from Wallhaven and a **live generative
+abstract shader** — rendered through
 [Lively Wallpaper](https://github.com/rocksdanister/lively) with interactive
 cursor effects.
 
 ## What it does
 
-- **Daily 4K imagery** — a scheduled task pulls the latest releases from
-  ESA/Hubble and ESA/Webb (Data2Dome feeds), NASA APOD, and the NASA Image
-  Library, plus best-effort scrapes of ISRO and JAXA galleries. Images are
-  scored (source curation, resolution, colorfulness, sharpness) and the top 3
-  per run are downloaded and re-encoded as wallpaper-friendly JPEGs.
+- **Daily 4K imagery, four themes** — a scheduled task pulls the latest
+  releases from ESA/Hubble and ESA/Webb (Data2Dome feeds), NASA APOD, and the
+  NASA Image Library, plus best-effort scrapes of ISRO and JAXA galleries
+  (theme: *space*), and the Wallhaven monthly toplist for *abstract*, *nature*
+  and *water* (SFW, General category, ≥3840×2160). Images are scored (source
+  curation, resolution, colorfulness, sharpness) and each theme fills its own
+  daily quota (`themes` in `fetcher\config.json`, default 1 each).
+- **Theme picker** — a dropdown in Lively's customize panel shows all themes
+  interleaved, any single theme, or **Generative abstract**: a live
+  domain-warped noise shader (no downloads, never repeats) that cursor
+  ripples physically stir.
 - **Interactive live wallpaper** — a WebGL slideshow with slow Ken Burns
   drift and a rotating cursor effect: exactly one effect is live per
   wallpaper, cycling through the rotation as images change (or on its own
@@ -55,6 +63,8 @@ double as your screensaver with zero extra code.
 | Change retention (2 GB / 30 days) | Edit `cleanup` in `fetcher\config.json` |
 | Use a personal NASA API key | Create `fetcher\config.local.json`: `{"nasa_api_key": "YOUR_KEY"}` (free at [api.nasa.gov](https://api.nasa.gov)) |
 | Disable a source | Set it to `false` under `sources` in `fetcher\config.json` |
+| Show only one theme (or the live shader) | Lively → Customize → *Theme* dropdown |
+| Change per-theme daily quotas | Edit `themes` in `fetcher\config.json` (0 disables a theme) |
 
 ## Notes & caveats
 
@@ -64,6 +74,9 @@ double as your screensaver with zero extra code.
   feeds carry the bulk of the imagery (routinely 4K–8K).
 - The NASA APOD `DEMO_KEY` allows ~50 requests/day — plenty for the daily
   fetch, but get a free personal key if you run the fetcher manually a lot.
+- **Wallhaven images** are community uploads with informal licensing — fine
+  for personal desktop use, but don't redistribute them (they're gitignored,
+  so they never leave your machine).
 - Wallpaper images and per-image credits are shown in the bottom-right
   overlay (toggleable). Imagery is CC/public-domain from the agencies;
   credit lines come from each release.

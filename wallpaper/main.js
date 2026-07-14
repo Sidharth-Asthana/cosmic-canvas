@@ -13,6 +13,7 @@ const settings = {
   effectIntensity: 1.0,
   effectCycleMinutes: 0,   // 0 = switch effect with each wallpaper change
   showEffectName: true,
+  themeFilter: "all",      // all | space | abstract | nature | water | generative
   parallaxEnabled: true,   // *Enabled flags = include this effect in the rotation
   stardustEnabled: true,
   rippleEnabled: true,
@@ -81,16 +82,13 @@ void main() {
   gl_Position = vec4(aPos, 0.0, 1.0);
 }`;
 
-const FRAG = `
+/* Shared by both fragment shaders: screen/effect uniforms + the click-ripple
+ * warp, so cursor effects work identically on photos and generative art. */
+const COMMON_FRAG = `
 precision highp float;
 #define RIPPLE_COUNT 8
 varying vec2 vUv;
-uniform sampler2D uTexA, uTexB;
-uniform float uMix;                 // 0 = A, 1 = B
-uniform float uAspectA, uAspectB;   // image aspect ratios
 uniform float uScreenAspect;
-uniform vec2 uPanA, uPanB;          // Ken Burns pan (uv units)
-uniform float uZoomA, uZoomB;
 uniform vec2 uParallax;
 uniform float uTime;
 uniform vec4 uRipples[RIPPLE_COUNT]; // (u, v, startTime, unused)
@@ -115,6 +113,14 @@ vec2 warp(vec2 uv) {
   }
   return off;
 }
+`;
+
+const FRAG = COMMON_FRAG + `
+uniform sampler2D uTexA, uTexB;
+uniform float uMix;                 // 0 = A, 1 = B
+uniform float uAspectA, uAspectB;   // image aspect ratios
+uniform vec2 uPanA, uPanB;          // Ken Burns pan (uv units)
+uniform float uZoomA, uZoomB;
 
 vec2 coverUv(vec2 uv, float imgAspect, vec2 pan, float zoom) {
   vec2 c = uv - 0.5;
@@ -133,6 +139,40 @@ void main() {
   gl_FragColor = vec4(color * vig, 1.0);
 }`;
 
+/* Generative abstract: domain-warped fbm noise through a drifting cosine
+ * palette — an endless, never-repeating color field. Cursor ripples and
+ * parallax feed into the noise domain, so clicks physically stir it. */
+const GEN_FRAG = COMMON_FRAG + `
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float noise(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x),
+             mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+}
+float fbm(vec2 p) {
+  float v = 0.0, a = 0.5;
+  for (int i = 0; i < 5; i++) { v += a * noise(p); p *= 2.03; a *= 0.5; }
+  return v;
+}
+void main() {
+  vec2 uv = vUv + warp(vUv) * 2.5 + uParallax * 3.0;
+  vec2 p = vec2(uv.x * uScreenAspect, uv.y) * 2.4;
+  float t = uTime * 0.018;
+  vec2 q = vec2(fbm(p + t), fbm(p + vec2(5.2, 1.3) - t));
+  vec2 s = vec2(fbm(p + 4.0 * q + vec2(1.7, 9.2) + t * 1.4),
+                fbm(p + 4.0 * q + vec2(8.3, 2.8) - t * 0.9));
+  float f = fbm(p + 4.0 * s);
+  // Analogous palette (close phase offsets) + mild desaturation: rich but
+  // calm, drifting through hue families over minutes instead of neon rainbow.
+  vec3 col = 0.45 + 0.38 * cos(6.2831 * (f * 0.9 + vec3(0.02, 0.13, 0.29)
+                                         + t * 1.2 + q.x * 0.3));
+  col = mix(vec3(dot(col, vec3(0.299, 0.587, 0.114))), col, 0.78);
+  col *= 0.35 + 0.85 * f;
+  float vig = 1.0 - 0.25 * smoothstep(0.45, 0.95, length(vUv - 0.5));
+  gl_FragColor = vec4(col * vig, 1.0);
+}`;
+
 function compile(type, src) {
   const s = gl.createShader(type);
   gl.shaderSource(s, src);
@@ -142,25 +182,38 @@ function compile(type, src) {
   return s;
 }
 
-const program = gl.createProgram();
-gl.attachShader(program, compile(gl.VERTEX_SHADER, VERT));
-gl.attachShader(program, compile(gl.FRAGMENT_SHADER, FRAG));
-gl.linkProgram(program);
+function link(fragSrc) {
+  const p = gl.createProgram();
+  gl.attachShader(p, compile(gl.VERTEX_SHADER, VERT));
+  gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fragSrc));
+  gl.bindAttribLocation(p, 0, "aPos"); // both programs share the quad layout
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS))
+    throw new Error(gl.getProgramInfoLog(p));
+  return p;
+}
+
+const program = link(FRAG);
+const genProgram = link(GEN_FRAG);
 gl.useProgram(program);
 
 const quad = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, quad);
 gl.bufferData(gl.ARRAY_BUFFER,
   new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-const aPos = gl.getAttribLocation(program, "aPos");
-gl.enableVertexAttribArray(aPos);
-gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+gl.enableVertexAttribArray(0);
+gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 
-const U = {};
-for (const name of ["uTexA", "uTexB", "uMix", "uAspectA", "uAspectB",
+function uniformMap(p, names) {
+  const m = {};
+  for (const name of names) m[name] = gl.getUniformLocation(p, name);
+  return m;
+}
+const U = uniformMap(program, ["uTexA", "uTexB", "uMix", "uAspectA", "uAspectB",
   "uScreenAspect", "uPanA", "uPanB", "uZoomA", "uZoomB", "uParallax",
-  "uTime", "uRipples", "uIntensity"])
-  U[name] = gl.getUniformLocation(program, name);
+  "uTime", "uRipples", "uIntensity"]);
+const GU = uniformMap(genProgram,
+  ["uScreenAspect", "uParallax", "uTime", "uRipples", "uIntensity"]);
 
 function makeTexture() {
   const t = gl.createTexture();
@@ -212,11 +265,17 @@ let playIndex = -1;
 let lastAdvance = 0;
 let manifestUpdated = "";
 
+const THEME_KEYS = ["all", "space", "abstract", "nature", "water", "generative"];
+
+function generativeMode() { return settings.themeFilter === "generative"; }
+
 function applyManifest() {
   const m = window.SPACE_MANIFEST;
   if (!m || !m.images || m.updated === manifestUpdated) return;
   manifestUpdated = m.updated;
-  playlist = m.images.slice();
+  playlist = m.images.filter(e =>
+    settings.themeFilter === "all" || generativeMode() ||
+    (e.theme || "space") === settings.themeFilter);
   if (settings.shuffle) {
     for (let i = playlist.length - 1; i > 0; i--) {
       const j = (Math.random() * (i + 1)) | 0;
@@ -345,6 +404,18 @@ function livelyPropertyListener(name, val) {
       settings.showEffectName = !!val;
       showEffectToast(settings.showEffectName ? activeEffectName() : null);
       break;
+    case "themeFilter":
+      settings.themeFilter = THEME_KEYS[Number(val)] || "all";
+      if (generativeMode()) {
+        document.getElementById("nowallpapers").style.display = "none";
+        setCredit({ title: "Generative Abstract",
+                    telescope: "live WebGL shader", credit: "" });
+      } else {
+        manifestUpdated = "";  // force playlist rebuild under the new filter
+        playIndex = -1;
+        applyManifest();
+      }
+      break;
     case "parallaxEnabled":
     case "stardustEnabled":
     case "rippleEnabled":
@@ -374,29 +445,50 @@ function frame() {
   Stardust.update(dt);
   Constellation.update(now);
 
-  if (fading) {
-    mixValue += dt / settings.crossfadeSeconds;
-    if (mixValue >= 1) {
-      front = 1 - front;
-      mixValue = 0;
-      fading = false;
-      setCredit(slots[front].entry);
-      if (settings.effectCycleMinutes === 0) advanceEffect(now);
+  const generative = generativeMode();
+  if (!generative) {
+    if (fading) {
+      mixValue += dt / settings.crossfadeSeconds;
+      if (mixValue >= 1) {
+        front = 1 - front;
+        mixValue = 0;
+        fading = false;
+        setCredit(slots[front].entry);
+        if (settings.effectCycleMinutes === 0) advanceEffect(now);
+      }
+    } else if (playlist.length > 1 &&
+               now - lastAdvance > settings.slideshowMinutes * 60) {
+      advance(false);
     }
-  } else if (playlist.length > 1 &&
-             now - lastAdvance > settings.slideshowMinutes * 60) {
-    advance(false);
   }
 
-  if (settings.effectCycleMinutes > 0 &&
-      now - lastEffectSwitch > settings.effectCycleMinutes * 60) {
+  // With no wallpaper changes in generative mode, "cycle with wallpaper"
+  // falls back to the slideshow interval so effects still rotate.
+  const effMinutes = settings.effectCycleMinutes > 0 ? settings.effectCycleMinutes
+    : (generative ? settings.slideshowMinutes : 0);
+  if (effMinutes > 0 && now - lastEffectSwitch > effMinutes * 60) {
     advanceEffect(now);
+  }
+
+  const par = Parallax.imageOffset();
+
+  if (generative) {
+    gl.useProgram(genProgram);
+    gl.uniform1f(GU.uScreenAspect, window.innerWidth / window.innerHeight);
+    gl.uniform2f(GU.uParallax, par.x, par.y);
+    gl.uniform1f(GU.uTime, now);
+    gl.uniform4fv(GU.uRipples, Ripple.uniformData(now));
+    gl.uniform1f(GU.uIntensity, settings.effectIntensity);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    drawFx(now);
+    requestAnimationFrame(frame);
+    return;
   }
 
   const a = slots[front], b = slots[1 - front];
   const kbA = kbState(a.kb, now), kbB = kbState(b.kb, now);
-  const par = Parallax.imageOffset();
 
+  gl.useProgram(program);
   gl.uniform1i(U.uTexA, 0);
   gl.uniform1i(U.uTexB, 1);
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, a.tex);
@@ -414,15 +506,17 @@ function frame() {
   gl.uniform4fv(U.uRipples, Ripple.uniformData(now));
   gl.uniform1f(U.uIntensity, settings.effectIntensity);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  drawFx(now);
+  requestAnimationFrame(frame);
+}
 
+function drawFx(now) {
   const w = window.innerWidth, h = window.innerHeight;
   fxCtx.clearRect(0, 0, w, h);
   Parallax.draw(fxCtx, w, h, now);
   Stardust.draw(fxCtx);
   Ripple.draw(fxCtx, now);
   Constellation.draw(fxCtx, now);
-
-  requestAnimationFrame(frame);
 }
 
 applyManifest();          // manifest.js was loaded synchronously in index.html

@@ -1,4 +1,10 @@
 {
+  "themeFilter": {
+    "type": "dropdown",
+    "text": "Theme",
+    "value": 0,
+    "items": ["All themes", "Space", "Abstract", "Nature", "Water", "Generative abstract (live shader)"]
+  },
   "slideshowMinutes": {
     "type": "slider",
     "text": "Slideshow interval (minutes)",

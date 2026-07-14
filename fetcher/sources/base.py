@@ -30,6 +30,7 @@ class ImageCandidate:
     height: int | None = None
     best_effort: bool = False    # relaxed min-width (ISRO/JAXA)
     source_weight: float = 0.0   # curation prior, set by each source
+    theme: str = "space"         # space | abstract | nature | water
     score: float = field(default=0.0, compare=False)
 
 

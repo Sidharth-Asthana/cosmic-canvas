@@ -27,7 +27,7 @@ sys.path.insert(0, str(FETCHER_DIR))
 
 from cleanup import run_cleanup  # noqa: E402
 from scoring import score_candidate  # noqa: E402
-from sources import esa_d2d, gallery_scrape, nasa_apod, nasa_library  # noqa: E402
+from sources import esa_d2d, gallery_scrape, nasa_apod, nasa_library, wallhaven  # noqa: E402
 from sources.base import ImageCandidate, slugify  # noqa: E402
 
 log = logging.getLogger("fetch")
@@ -39,6 +39,7 @@ SOURCES = {
     "nasa_library": nasa_library.fetch_library,
     "isro": gallery_scrape.fetch_isro,
     "jaxa": gallery_scrape.fetch_jaxa,
+    "wallhaven": wallhaven.fetch_wallhaven,
 }
 
 
@@ -119,6 +120,7 @@ def download_and_encode(session, candidate, config, images_dir: Path) -> dict | 
         "credit": candidate.credit,
         "source": candidate.source,
         "telescope": candidate.telescope,
+        "theme": candidate.theme,
         "published": candidate.published.date().isoformat(),
     }
 
@@ -139,6 +141,7 @@ def rebuild_manifest(config, images_dir: Path, meta: dict) -> None:
                 "published": datetime.fromtimestamp(
                     f.stat().st_mtime, timezone.utc).date().isoformat(),
             }
+            entry.setdefault("theme", "space")  # entries predating themes
             entry = {**entry, "file": rel, "favorite": favorite}
             entries.append(entry)
             meta[rel] = {k: v for k, v in entry.items() if k != "favorite"}
@@ -189,9 +192,15 @@ def main() -> int:
         score_candidate(c, session)
     candidates.sort(key=lambda c: c.score, reverse=True)
 
-    downloaded = 0
+    # Per-theme quotas: candidates are score-sorted, each theme fills its own
+    # slot count so space and the photo themes never crowd each other out.
+    quotas = config.get("themes", {"space": config.get("downloads_per_run", 3)})
+    downloaded = {theme: 0 for theme in quotas}
     for candidate in candidates:
-        if downloaded >= config["downloads_per_run"]:
+        theme = candidate.theme
+        if downloaded.get(theme, 0) >= quotas.get(theme, 0):
+            continue
+        if all(downloaded[t] >= quotas[t] for t in quotas):
             break
         try:
             entry = download_and_encode(session, candidate, config, images_dir)
@@ -203,13 +212,14 @@ def main() -> int:
         if entry:
             state["meta"][entry["file"]] = {k: v for k, v in entry.items()
                                             if k != "file"}
-            downloaded += 1
+            downloaded[theme] = downloaded.get(theme, 0) + 1
 
     run_cleanup(images_dir, config["cleanup"]["max_folder_bytes"],
                 config["cleanup"]["max_age_days"])
     rebuild_manifest(config, images_dir, state["meta"])
     save_state(state)
-    log.info("done: %d new wallpaper(s)", downloaded)
+    log.info("done: %d new wallpaper(s) %s", sum(downloaded.values()),
+             {t: n for t, n in downloaded.items() if n})
     return 0
 
 
